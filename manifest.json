@@ -1,0 +1,17 @@
+{
+    "manifest_version": 3,
+    "name": "Google Maps Step Calculator",
+    "version": "1.0",
+    "description": "Calculate steps and calories from Google Maps routes",
+    "permissions": ["activeTab", "scripting"],
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "content_scripts": [
+      {
+        "matches": ["https://www.google.com/maps/*"],
+        "js": ["content.js"]
+      }
+    ]
+  }
+ 

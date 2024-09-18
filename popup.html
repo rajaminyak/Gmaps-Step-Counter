@@ -1,0 +1,25 @@
+// popup.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Maps Step Calculator</title>
+  <script src="popup.js"></script>
+</head>
+<body>
+  <h1>Step Calculator</h1>
+  <div id="distanceInfo"></div>
+  <input type="number" id="height" placeholder="Height (cm)">
+  <input type="number" id="weight" placeholder="Weight (kg)">
+  <select id="gender">
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+  </select>
+  <select id="walkingType">
+    <option value="leisurely">Leisurely (3 km/h)</option>
+    <option value="moderate">Moderate (4.5 km/h)</option>
+    <option value="brisk">Brisk (6 km/h)</option>
+  </select>
+  <button id="calculate">Calculate</button>
+  <div id="results"></div>
+</body>
+</html>
