@@ -1,0 +1,106 @@
+// manifest.json
+{
+  "manifest_version": 3,
+  "name": "Google Maps Step Calculator",
+  "version": "1.0",
+  "description": "Calculate steps and calories from Google Maps routes",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.google.com/maps/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
+
+// popup.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Google Maps Step Calculator</title>
+  <script src="popup.js"></script>
+</head>
+<body>
+  <h1>Step Calculator</h1>
+  <div id="distanceInfo"></div>
+  <input type="number" id="height" placeholder="Height (cm)">
+  <input type="number" id="weight" placeholder="Weight (kg)">
+  <select id="gender">
+    <option value="male">Male</option>
+    <option value="female">Female</option>
+  </select>
+  <select id="walkingType">
+    <option value="leisurely">Leisurely (3 km/h)</option>
+    <option value="moderate">Moderate (4.5 km/h)</option>
+    <option value="brisk">Brisk (6 km/h)</option>
+  </select>
+  <button id="calculate">Calculate</button>
+  <div id="results"></div>
+</body>
+</html>
+
+// content.js
+function getRouteDistance() {
+  const distanceElement = document.querySelector('.section-directions-trip-distance');
+  return distanceElement ? distanceElement.textContent : null;
+}
+
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === "getDistance") {
+    sendResponse({distance: getRouteDistance()});
+  }
+});
+
+// popup.js
+document.addEventListener('DOMContentLoaded', function() {
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, {action: "getDistance"}, function(response) {
+      if (response && response.distance) {
+        document.getElementById('distanceInfo').textContent = `Route distance: ${response.distance}`;
+      }
+    });
+  });
+
+  document.getElementById('calculate').addEventListener('click', function() {
+    const height = document.getElementById('height').value;
+    const weight = document.getElementById('weight').value;
+    const gender = document.getElementById('gender').value;
+    const walkingType = document.getElementById('walkingType').value;
+    const distanceText = document.getElementById('distanceInfo').textContent;
+    const distance = parseFloat(distanceText.match(/\d+(\.\d+)?/)[0]);
+
+    const results = calculateStepsAndCalories(distance, height, weight, gender, walkingType);
+    document.getElementById('results').innerHTML = `
+      <p>Estimated Steps: ${results.steps}</p>
+      <p>Estimated Calories: ${results.calories}</p>
+      <p>Estimated Time: ${results.time} minutes</p>
+    `;
+  });
+});
+
+function calculateStepsAndCalories(distance, height, weight, gender, walkingType) {
+  let stepLength = (gender === 'male' ? 0.415 : 0.413) * (parseFloat(height) / 100);
+
+  const walkingFactors = {
+    'leisurely': { stepMod: 0.9, metsValue: 2.5, speed: 3 },
+    'moderate': { stepMod: 1.0, metsValue: 3.5, speed: 4.5 },
+    'brisk': { stepMod: 1.1, metsValue: 4.5, speed: 6 }
+  };
+
+  const factor = walkingFactors[walkingType];
+  stepLength *= factor.stepMod;
+
+  const distanceMeters = distance * 1000;
+  const estimatedSteps = Math.round(distanceMeters / stepLength);
+
+  const weightKg = parseFloat(weight);
+  const durationHours = distanceMeters / (factor.speed * 1000);
+  const caloriesBurned = Math.round(factor.metsValue * weightKg * durationHours);
+
+  const timeMinutes = Math.round((durationHours * 60) * 10) / 10;
+
+  return { steps: estimatedSteps, calories: caloriesBurned, time: timeMinutes };
+}
